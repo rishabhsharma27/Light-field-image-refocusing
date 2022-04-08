@@ -1,6 +1,6 @@
 import os
 import numpy as np
-#from matplotlib import pyplot as plt
+from matplotlib import pyplot as plt
 import imageio
 import cv2
 
@@ -13,7 +13,6 @@ class L:
   def __init__(self):
     self.blank_image = 0
     self.get_folder_loc()
-
 
     
   @classmethod  
@@ -96,9 +95,10 @@ class L:
       for j in range(num):
         if(count<10):
           path[i,j] = cv2.imread(folder_loc + "/input_Cam00" + str(count) + ".png")
-        else:
+        elif (count>=10):
           path[i,j] = cv2.imread(folder_loc + "/input_Cam0" + str(count) + ".png")
-        count +=1  
+        count +=1
+    #cv2.imwrite("path.png",path[8,8])
     return path
 
 
@@ -109,7 +109,8 @@ class L:
     dim = path[0,0].shape
     LF_sep = {}
     a = path[0,0]
-    print(dim[0]==dim[1])
+    #print(dim[0]==dim[1])
+    #b1 = np.empty(shape=(dim[0] , dim[1], dim[2]),dtype='complex')
    
     if (dim[0]==dim[1]):
       w = np.hanning(dim[0])
@@ -117,17 +118,25 @@ class L:
       for i in range(num):
         for j in range(num):
           #print(num,i,j)
-          LF_sep[i,j] = self.Hann_win_mul(path[i,j],w)  
-          #if i==8 and j==8:
-          #  cv2.imwrite("b1.jpeg",LF_sep[i,j])
-          #  cv2.imwrite("w.jpeg",w)
+          b1 = np.empty(shape=(dim[0] , dim[1], dim[2]),dtype='complex')
+          b1[:,:,0] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,0]))*w) 
+          b1[:,:,1] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,1]))*w)
+          b1[:,:,2] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,2]))*w)
+          LF_sep[i,j] = b1
+          if i==0 & j==0:
+            #print(LF_sep[0,0].shape)
+            cv2.imwrite("LF.png",np.real(np.fft.ifft2(LF_sep[0,0][:,:,0])))
     elif (dim[0]>dim[1]):
       w = np.hanning(dim[0])
       dif = dim[0] - dim[1]
       path[i,j] = np.pad(path[i,j], [(0, 0), (0, dif)], mode='constant', constant_values=0)
       for i in range(num):
         for j in range(num):
-          LF_sep[i,j] = self.Hann_win_mul(path[i,j],w)  
+          b1 = np.empty(shape=(dim[0] , dim[1], dim[2]),dtype='complex')
+          b1[:,:,0] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,0]))) 
+          b1[:,:,1] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,1])))
+          b1[:,:,2] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,2])))
+          LF_sep[i,j] = b1
 
     elif (dim[1]>dim[0]):
       w = np.hanning(dim[1])
@@ -135,20 +144,13 @@ class L:
       path[i,j] = np.pad(path[i,j], [(0, dif), (0, 0)], mode='constant', constant_values=0)
       for i in range(num):
         for j in range(num):
-          LF_sep[i,j] = self.Hann_win_mul(path[i,j],w)
-    cv2.imwrite("b1.jpeg",LF_sep[1,1])
+          b1 = np.empty(shape=(dim[0] , dim[1], dim[2]),dtype='complex')
+          b1[:,:,0] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,0]))) 
+          b1[:,:,1] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,1])))
+          b1[:,:,2] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(path[i,j][:,:,2])))
+          LF_sep[i,j] = b1
     return LF_sep
 
-  @classmethod 
-  def Hann_win_mul(self,a,w): 
-    dim = a.shape
-    b = np.empty(shape=(dim[0] , dim[1], dim[2]),dtype='complex')
-    b[:,:,0] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(a[:,:,0]))*w)
-    b[:,:,1] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(a[:,:,1]))*w)
-    b[:,:,2] = np.fft.ifftshift(np.fft.fftshift(np.fft.fft2(a[:,:,2]))*w)
-
-      #cv2.imwrite("b.jpeg",b)
-    return np.real(b)
 
   @classmethod   
   def shift_var(self,slope):
@@ -165,36 +167,62 @@ class L:
     [voffset_vec, uoffset_vec] = self.shift_var(slope)
     LF_sep = self.fft_img_tuple()
     dim = LF_sep[0,0].shape
+
+
+
     LF_reshape = np.empty(shape=(num*num,dim[0],dim[1],dim[2]),dtype='long')
+    #LF_reshape = 0
     Nr = np.fft.ifftshift(np.linspace(-np.fix(dim[0]/2) , np.ceil(dim[0]/2)-1 , dim[0]))
     Nc = np.fft.ifftshift(np.linspace(-np.fix(dim[1]/2) , np.ceil(dim[1]/2)-1 , dim[1]))   
     xF, yF = np.meshgrid(Nr,Nc)
     count=0
-    for i in range(num):
-      for j in range(num):
+    for j in range(num):
+      for i in range(num):
         voffset = voffset_vec[i]
         uoffset = uoffset_vec[j]
-        in_img = LF_sep[i,j]
+        #in_img = LF_sep[i,j]
 
         x0 = -uoffset
         y0 = -voffset
         H = np.exp(1J*2*np.pi*(x0*xF/dim[0]+y0*yF/dim[1]))
         #H=np.real(H)
-        IF_img = np.empty(shape=(dim[0],dim[1],3),dtype='complex')
+        IF_img = np.empty(shape=(dim[0],dim[1],dim[2]))
         
-        IF_img[:,:,0] = np.real(np.fft.ifft2(in_img[:,:,0]*H))
-        IF_img[:,:,1] = np.real(np.fft.ifft2(in_img[:,:,1]*H))
-        IF_img[:,:,2] = np.real(np.fft.ifft2(in_img[:,:,2]*H))
-        
+        IF_img[:,:,0] = np.real(np.fft.ifft2(LF_sep[i,j][:,:,1]*H))
+        IF_img[:,:,1] = np.real(np.fft.ifft2(LF_sep[i,j][:,:,1]*H))
+        IF_img[:,:,2] = np.real(np.fft.ifft2(LF_sep[i,j][:,:,2]*H))
+
+        x0 = np.round(int(x0))
+        y0 = np.round(int(y0))
+
+        if (x0>0):
+            IF_img[:,dim[0]-np.abs(x0):dim[0],:] = 0
+        elif (x0>0):
+            IF_img[:,0:abs(x0),:] = 0
+
+        if (y0>0):
+            IF_img[dim[0]-np.abs(x0):dim[0],:,:] = 0
+        elif (y0>0):
+            IF_img[0:abs(x0),:,:] = 0
+
+
         LF_reshape[count,:,:,:] = IF_img
         count+=1
-    print(LF_reshape.shape)
-    print(LF_sep[0,0].shape)
-    #ImgOut_med = np.nanmedian(LF_reshape)
-    
-    #cv2.imwrite("refocused.jpeg",LF_sep[0,0])
-    
-        
+    #print(LF_reshape.shape)
+
+    IF_img_1 = np.empty(shape=(1,dim[0],dim[1],dim[2]))
+
+
+    #print(dim)
+
+    IF_img_2 = np.nanmedian(LF_reshape,0)
+
+    #print(IF_img_2.shape)
+
+    #print(voffset_vec)
+    #print(uoffset_vec)
+    cv2.imwrite("refocused1.png",IF_img_2)
+
 
  
         
@@ -202,3 +230,4 @@ class L:
   
 
    
+
