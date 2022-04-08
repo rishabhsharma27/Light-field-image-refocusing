@@ -69,7 +69,7 @@ class Light_field_refocus:
         count +=1
         #plt.imshow(path[i,j])
         #plt.show()
-    print(len(path))    
+    #print(len(path))    
     #savemat("LF.mat", path)
     cv2.imwrite("sub_view_img.png",blank_image)
 
