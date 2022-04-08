@@ -9,7 +9,7 @@ import cv2
 #file_loc = input("Enter location = ")
 #Folder_loc = "1"
 
-class L:
+class Light_field_refocus:
   def __init__(self):
     self.blank_image = 0
     self.get_folder_loc()
@@ -162,7 +162,7 @@ class L:
     return [voffset_vec, uoffset_vec]
       
   @classmethod   
-  def refocus_test(self,slope):
+  def refocus(self,slope):
     num = self.sub_num()
     [voffset_vec, uoffset_vec] = self.shift_var(slope)
     LF_sep = self.fft_img_tuple()
@@ -221,7 +221,7 @@ class L:
 
     #print(voffset_vec)
     #print(uoffset_vec)
-    cv2.imwrite("refocused1.png",IF_img_2)
+    cv2.imwrite("refocused.png",IF_img_2)
 
 
  
